@@ -1,7 +1,8 @@
+LIB_PATH = $(CURDIR)/../lib
 all: revwords
-revwords: revwords.c ../lib/helpers.so
-	gcc revwords.c -I../lib ../lib/helpers.so -o revwords
-../lib/helpers.so:
-	cd ../lib && $(MAKE)
+revwords: revwords.c $(LIB_PATH)/helpers.so
+	gcc revwords.c -I$(LIB_PATH) $(LIB_PATH)/helpers.so -o revwords
+$(LIB_PATH)/helpers.so:
+	cd $(LIB_PATH) && $(MAKE)
 clean:
 	rm -rf revwords
