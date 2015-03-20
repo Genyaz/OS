@@ -1,4 +1,7 @@
 #include "helpers.h"
+#include <sys/types.h>
+#include <errno.h>
+#include <stdlib.h>
 
 ssize_t read_(int fd, void* buf, size_t count) 
 {
@@ -64,4 +67,40 @@ ssize_t read_until(int fd, void * buf, size_t count, char delimiter)
         }
     }
     return count;
+}
+
+int spawn(const char* file, char * const argv[])
+{
+    int pid;
+    while ((pid = fork()) == -1)
+    {
+        if (errno != EAGAIN)
+        {
+            exit(EXIT_FAILURE);
+        }
+    }
+    if (pid != 0)
+    {
+        int status;
+        while (wait(&status) != pid)
+        {
+            if (errno != EINTR)
+            {
+                exit(EXIT_FAILURE);
+            }
+        }
+        if (WIFEXITED(status))
+        {
+            return WEXITSTATUS(status);
+        }
+        else
+        {
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        execvp(file, argv);
+        exit(EXIT_FAILURE);
+    }      
 }
