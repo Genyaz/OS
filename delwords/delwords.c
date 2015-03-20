@@ -1,7 +1,7 @@
 #include "helpers.h"
 #include <string.h>
 #include <stdlib.h>
-#define buf_size 4096
+#define buf_size 4
 
 int main(int argc, char const * argv[])
 {
@@ -27,7 +27,7 @@ int main(int argc, char const * argv[])
 			int buf_end = prev_read + read;
 			int i = 0;
 			int to_write = 0;
-			while (i < buf_end - len)
+			while (i < buf_end - len + 1)
 			{
 				int equal = 1;
 				int j = 0;
@@ -49,7 +49,7 @@ int main(int argc, char const * argv[])
 			int shift = i;
 			while (i < buf_end)
 			{
-				buf[i] = buf[i - shift];
+				buf[i - shift] = buf[i];
 				i++;
 			}
 			prev_read = buf_end - shift;
