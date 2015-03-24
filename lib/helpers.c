@@ -72,26 +72,26 @@ ssize_t read_until(int fd, void * buf, size_t count, char delimiter)
     return count;
 }
 
+int was_interrupted(int return_value)
+{
+    if (return_value == -1 && errno != EINTR)
+    {
+        exit(EXIT_FAILURE);
+    }
+    return (return_value == -1);
+}
+
 int spawn(const char* file, char * const argv[])
 {
     int pid;
-    while ((pid = fork()) == -1)
+    if ((pid = fork()) == -1)
     {
-        if (errno != EAGAIN)
-        {
-            exit(EXIT_FAILURE);
-        }
+        exit(EXIT_FAILURE);
     }
     if (pid != 0)
     {
-	int status;
-        while (wait(&status) != pid)
-        {
-            if (errno != EINTR)
-            {
-                exit(EXIT_FAILURE);
-            }
-        }
+        int status;
+        while (was_interrupted(wait(&status)));
         if (WIFEXITED(status))
         {
             return WEXITSTATUS(status);
@@ -107,9 +107,14 @@ int spawn(const char* file, char * const argv[])
     }
     else
     {   
-        int devNull = open("/dev/null", O_WRONLY);
-        dup2(devNull, STDOUT_FILENO);
-        dup2(devNull, STDERR_FILENO);
+        int dev_null = open("/dev/null", O_WRONLY);
+        if (dev_null == -1)
+        {
+            exit(EXIT_FAILURE);
+        }
+        while (was_interrupted(dup2(dev_null, STDOUT_FILENO)));
+        while (was_interrupted(dup2(dev_null, STDERR_FILENO)));
+        while (was_interrupted(close(dev_null)));
         execvp(file, argv);
         exit(EXIT_FAILURE);
     }      

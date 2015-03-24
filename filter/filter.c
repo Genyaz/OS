@@ -1,5 +1,6 @@
 #include "filter.h"
 #include <stdlib.h>
+#include <string.h>
 #define BUF_SIZE 4096
 
 void check(char str[BUF_SIZE], int str_len, char * args[])
@@ -18,6 +19,10 @@ void check(char str[BUF_SIZE], int str_len, char * args[])
 
 int main(int argc, char * const argv[])
 {
+	if (argc < 2)
+	{
+		exit(EXIT_FAILURE);
+	}
 	char * args[argc + 1];
 	int i;
 	for (i = 1; i < argc; i++)
@@ -25,7 +30,7 @@ int main(int argc, char * const argv[])
 		args[i - 1] = argv[i];
 	}
 	char buf[BUF_SIZE];
-	char str[BUF_SIZE];
+	char str[BUF_SIZE + 2];
 	args[argc - 1] = str;
 	args[argc] = 0;
 	int buf_len = 0;
@@ -63,10 +68,7 @@ int main(int argc, char * const argv[])
 				exit(EXIT_FAILURE);
 			}
 			buf_len = str_len;
-			for (i = 0; i < buf_len; i++)
-			{
-				buf[i] = str[i];
-			}
+			memmove(buf, str, buf_len);
 		}
 	}
 }
