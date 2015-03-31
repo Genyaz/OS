@@ -1,7 +1,7 @@
 #include "helpers.h"
 #include <string.h>
 #include <stdlib.h>
-#define buf_size 4
+#define buf_size 4096
 
 int main(int argc, char const * argv[])
 {
