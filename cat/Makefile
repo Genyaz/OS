@@ -1,8 +1,5 @@
-LIB_PATH = $(CURDIR)/../lib
 all: cat
-cat: cat.c $(LIB_PATH)/libhelpers.so
-	gcc cat.c -I$(LIB_PATH) $(LIB_PATH)/libhelpers.so -o cat
-$(LIB_PATH)/libhelpers.so:
-	cd $(LIB_PATH) && $(MAKE)
+cat: cat.c
+	gcc -std=c99 -Wl,-rpath=$(shell readlink -f ../lib) -o cat -I ../lib cat.c -L../lib -lhelpers
 clean:
 	rm -rf cat

@@ -1,8 +1,5 @@
-LIB_PATH = $(CURDIR)/../lib
 all: filter
-filter: filter.h filter.c $(LIB_PATH)/libhelpers.so
-	gcc filter.h filter.c -I$(LIB_PATH) $(LIB_PATH)/libhelpers.so -o filter
-$(LIB_PATH)/libhelpers.so:
-	cd $(LIB_PATH) && $(MAKE)
+filter: filter.c
+	gcc -std=c99 -Wl,-rpath=$(shell readlink -f ../lib) -o filter -I ../lib filter.c -L../lib -lhelpers
 clean:
 	rm -rf filter

@@ -1,8 +1,4 @@
-LIB_PATH = $(CURDIR)/../lib
-all: bufcat
-bufcat: bufcat.c $(LIB_PATH)/libbufio.so
-	gcc bufcat.c -I$(LIB_PATH) $(LIB_PATH)/libbufio.so -o bufcat
-$(LIB_PATH)/libbufio.so:
-	cd $(LIB_PATH) && $(MAKE) libbufio.so
+all: bufcat.c
+	gcc -std=c99 -Wl,-rpath=$(shell readlink -f ../lib) -o bufcat -I ../lib bufcat.c -L../lib -lbufio
 clean:
 	rm -rf bufcat
