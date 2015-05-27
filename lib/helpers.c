@@ -1,10 +1,16 @@
+#define _POSIX_SOURCE
 #include "helpers.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+#include <string.h>
+
+typedef struct execargs_t execargs_t;
 
 ssize_t read_(int fd, void* buf, size_t count) 
 {
@@ -118,4 +124,115 @@ int spawn(const char* file, char * const argv[])
         execvp(file, argv);
         exit(EXIT_FAILURE);
     }      
+}
+
+execargs_t * execargs_new(char* file, char** args)
+{
+	execargs_t* res = malloc(sizeof(execargs_t));
+	if (res == NULL) return NULL;
+	res->file = file;
+    res->args = args;
+	return res;
+}
+
+int exec(execargs_t * args)
+{
+    execvp(args->file, args->args);
+    exit(EXIT_FAILURE);
+}
+
+pid_t * pids = 0;
+size_t pidn = 0;
+
+void kill_chlds()
+{
+	int i;
+	for (i = 0; i < pidn; i++) if (pids[i] != 0)
+	{
+		kill(pids[i], SIGKILL);
+	}
+	pidn = 0;
+}
+
+void wait_all()
+{
+	int status;
+	while (1)
+	{
+		wait(&status);
+		if (errno == ECHILD) break;
+	}
+}
+
+void hdl(int sig)
+{
+	kill_chlds();
+}
+
+int runpiped(execargs_t** programs, size_t n)
+{
+	if (n == 0)
+	{
+		write_(STDOUT_FILENO, "Oops, empty string!\n", 20);
+		return 0;
+	}
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = hdl;
+    sigset_t set; 
+    sigemptyset(&set);        
+    sigaddset(&set, SIGINT);
+	sigaddset(&set, SIGPIPE);
+	sigaddset(&set, SIGCHLD);
+    act.sa_mask = set;
+    sigaction(SIGINT, &act, 0);
+	sigaction(SIGPIPE, &act, 0);
+	sigaction(SIGCHLD, &act, 0);
+	pidn = n;
+	pids = malloc(n * sizeof(pid_t));
+	if (pids == NULL) return -1;
+	int i;
+	for (i = 0; i < n; i++)
+	{
+		pids[i] = 0;
+	}
+	int pipefds[2];
+	int in[n];
+	in[0] = STDIN_FILENO;
+	int out[n];
+	out[n - 1] = STDOUT_FILENO;
+	for (i = 0; i < n - 1; i++)
+	{
+		if (pipe(pipefds) == -1)
+		{
+			return -1;
+		}
+		out[i] = pipefds[1];
+		in[i + 1] = pipefds[0];
+	}	
+	for (i = n - 1; i >= 0; i++)
+	{
+		int pid = fork();		
+		if (pid == -1)
+		{
+			kill_chlds();
+			wait_all();
+			return -1;	
+		}
+		if (pid == 0)
+		{
+			if (dup2(STDIN_FILENO, in[i]) == -1) exit(EXIT_FAILURE);
+			if (dup2(STDOUT_FILENO, out[i]) == -1) exit(EXIT_FAILURE);
+			exec(programs[i]);
+		}
+		else
+		{
+			pids[i] = pid;
+		}
+	}
+	int status;
+	wait(&status);
+	kill_chlds();
+	wait_all();
+	return 0;  
 }

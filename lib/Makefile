@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -fPIC -c
+CFLAGS = -fPIC -c -std=c99
 TARGET_LIB1 = libhelpers.so
 TARGET_LIB2 = libbufio.so
 all: $(TARGET_LIB1) $(TARGET_LIB2)
