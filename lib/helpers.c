@@ -169,14 +169,24 @@ void hdl(int sig)
 	kill_chlds();
 }
 
+void fail(int sig)
+{
+	exit(EXIT_FAILURE);
+}
+
 int runpiped(execargs_t** programs, size_t n)
 {
-	if (n == 0)
-	{
-		write_(STDOUT_FILENO, "Oops, empty string!\n", 20);
-		return 0;
-	}    
+	if (n == 0) return 0;
+	struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = hdl;
+    sigset_t set; 
+    sigemptyset(&set);        
+    sigaddset(&set, SIGINT);
+    act.sa_mask = set;
+	sigaction(SIGINT, &act, 0);
 	pidn = n;
+	if (pids != 0) free(pids);
 	pids = malloc(n * sizeof(pid_t));
 	if (pids == NULL) return -1;
 	int i;
@@ -211,9 +221,8 @@ int runpiped(execargs_t** programs, size_t n)
 		{
 			if (dup2(in[i], STDIN_FILENO) == -1) exit(EXIT_FAILURE);
 			if (dup2(out[i], STDOUT_FILENO) == -1) exit(EXIT_FAILURE);
-			struct sigaction act;
-    		memset(&act, 0, sizeof(act));
-    		act.sa_handler = hdl;
+			memset(&act, 0, sizeof(act));
+    		act.sa_handler = fail;
     		sigset_t set; 
     		sigemptyset(&set);        
     		sigaddset(&set, SIGPIPE);

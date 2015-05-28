@@ -10,72 +10,71 @@ char buf[BUF_SIZE];
 int buf_size = 0;
 int run_before = 1;
 
+void hdl(int sig)
+{
+}
+
 char** split_string(char * s, char * delimiters)
 {
 	char ** res = NULL;
 	char * p = (char*)strtok(s, delimiters);
-	//write_(STDOUT_FILENO, "Splitting \"", 11);
-	//write_(STDOUT_FILENO, s, strlen(s));
-	//write_(STDOUT_FILENO, "\"\n", 2);	
-	int size = 0, i;
-	while (p) 
+	int size = 0;
+	while (p)
 	{
 		res = realloc(res, sizeof(char*) * ++size);
 		if (res == NULL) exit(EXIT_FAILURE);
 		res[size - 1] = p;
-		//write_(STDOUT_FILENO, p, strlen(p));
-		//write_(STDOUT_FILENO, "\n", 2);		
  		p = (char*)strtok(NULL, delimiters);
 	}
 	res = realloc(res, sizeof(char*) * (size + 1));
-	res[size] = 0;
+	res[size] = NULL;
 	return res;
 }
 
 struct execargs_t * ea_from_string(char* s)
 {
-	//write_(STDOUT_FILENO, "Program \"", 9);
-	//write_(STDOUT_FILENO, s, strlen(s));
-	//write_(STDOUT_FILENO, "\"\n", 2);
 	char ** split = split_string(s, " ");
 	if (split[0] == NULL) return NULL;
-	//write_(STDOUT_FILENO, "Main \"", 6);
-	//write_(STDOUT_FILENO, split[0], strlen(split[0]));
-	//write_(STDOUT_FILENO, "\"\n", 2);
-	int i = 1;
-	while (split[i] != NULL)
-	{
-		//write_(STDOUT_FILENO, "Arg \"", 5);
-		//write_(STDOUT_FILENO, split[i], strlen(split[i]));
-		//write_(STDOUT_FILENO, "\"\n", 2);
-		i++;
-	}
 	return execargs_new(split[0], split);
 }
 
 void run(char * ss, int len)
 {
-	//write_(STDOUT_FILENO, "Parsing \"", 9);
-	//write_(STDOUT_FILENO, ss, len);
-	//write_(STDOUT_FILENO, "\"\n", 2);
 	char * s = malloc(sizeof(char) * (len + 1));
+	if (s == NULL) exit(EXIT_FAILURE);
 	strncpy(s, ss, len + 1);
 	s[len] = 0;
 	char ** split = split_string(s, "|");
-	int n = 0, i, size = 0;	
-	while (split[n] != NULL) n++;
-	execargs_t ** programs = malloc(sizeof(execargs_t*) * (n + 1));
-	if (programs == NULL) exit(EXIT_FAILURE);
-	for (i = 0; i < n; i++) 
+	execargs_t ** programs = NULL;
+	int i = 0, size = 0;
+	while (split[i] != NULL)
 	{
-		programs[size++] = ea_from_string(split[i]);
-		if (programs[size - 1] == NULL) size--;
+		execargs_t * program = ea_from_string(split[i]);
+		if (program != NULL)
+		{
+			programs = realloc(programs, sizeof(execargs_t*) * ++size);
+			if (programs == NULL) exit(EXIT_FAILURE);
+			programs[size - 1] = program;
+		}
+		i++;	
 	}
+	programs = realloc(programs, sizeof(execargs_t*) * (size + 1));
+	if (programs == NULL) exit(EXIT_FAILURE);
 	programs[size] = NULL;
 	if (size > 0)
 	{
-		//write_(STDOUT_FILENO, "Running pipeline... \n", 21);
-		runpiped(programs, size);
+		if (runpiped(programs, size) == -1)
+		{
+			write_(STDOUT_FILENO, "\nSomething went wrong, try again.\n", 34);
+		}
+		free(s);
+		free(split);
+		while (--size >= 0)
+		{
+			free(programs[size]->args);
+			free(programs[size]);
+		}
+		free(programs);		
 		run_before = 1;
 	}
 }
@@ -111,22 +110,16 @@ int main()
 	struct sigaction act;
     memset(&act, 0, sizeof(act));
     act.sa_handler = hdl;
-    sigset_t set; 
-    sigemptyset(&set);        
+    sigset_t set;
+    sigemptyset(&set);
     sigaddset(&set, SIGINT);
     act.sa_mask = set;
     sigaction(SIGINT, &act, 0);
 	while (1)
 	{
-		if (run_before)	
+		if (run_before)
 		{
-			while (write_(STDOUT_FILENO, "$", 1) == -1)
-			{
-				if (errno != EINTR)
-				{
-					exit(EXIT_FAILURE);
-				}
-			}				
+			if (write_(STDOUT_FILENO, "$", 1) == -1) exit(EXIT_FAILURE);
 			run_before = 0;
 		}
 		int r = read(STDIN_FILENO, buf + buf_size, BUF_SIZE - buf_size);
@@ -135,12 +128,16 @@ int main()
 			last_run();
 			exit(EXIT_SUCCESS);
 		}	
-		if (r == -1 && errno != EINTR) exit(EXIT_FAILURE);
+		if (r == -1) 
+		{
+			if (errno != EINTR) exit(EXIT_FAILURE);
+			if (write_(STDOUT_FILENO, "\n$", 2) == -1) exit(EXIT_FAILURE);				
+			run_before = 0;
+		}
 		if (r > 0)
 		{
 			buf_size += r;
 			check_for_run();
 		}	
 	}
-	exit(EXIT_SUCCESS);
 }

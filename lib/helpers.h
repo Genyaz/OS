@@ -16,6 +16,5 @@ typedef struct execargs_t
 execargs_t * execargs_new(char* file, char* args[]);
 int exec(execargs_t * args);
 int runpiped(execargs_t ** programs, size_t n);
-void hdl();
 
 #endif
