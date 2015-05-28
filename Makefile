@@ -4,6 +4,7 @@ all:
 	cd ./revwords && $(MAKE)
 	cd ./filter && $(MAKE)
 	cd ./bufcat && $(MAKE)
+	cd ./simplesh && $(MAKE)
 
 clean:
 	cd ./lib && $(MAKE) clean
@@ -11,3 +12,4 @@ clean:
 	cd ./revwords && $(MAKE) clean
 	cd ./filter && $(MAKE) clean
 	cd ./bufcat && $(MAKE) clean
+	cd ./simplesh && $(MAKE) clean

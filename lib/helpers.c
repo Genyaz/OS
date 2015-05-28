@@ -37,7 +37,7 @@ ssize_t write_(int fd, void* buf, size_t count)
     ssize_t written_now = 0;
     while (written < count)
     {        
-        if ((written_now = write(fd, buf + written, count - written)) == -1)
+        if ((written_now = write(fd, buf + written, count - written)) == -1 && errno != EINTR)
         {
             return -1;
         }
@@ -175,17 +175,7 @@ int runpiped(execargs_t** programs, size_t n)
 	{
 		write_(STDOUT_FILENO, "Oops, empty string!\n", 20);
 		return 0;
-	}
-    struct sigaction act;
-    memset(&act, 0, sizeof(act));
-    act.sa_handler = hdl;
-    sigset_t set; 
-    sigemptyset(&set);        
-    sigaddset(&set, SIGINT);
-	sigaddset(&set, SIGPIPE);
-    act.sa_mask = set;
-    sigaction(SIGINT, &act, 0);
-	sigaction(SIGPIPE, &act, 0);
+	}    
 	pidn = n;
 	pids = malloc(n * sizeof(pid_t));
 	if (pids == NULL) return -1;
@@ -219,8 +209,16 @@ int runpiped(execargs_t** programs, size_t n)
 		}
 		if (pid == 0)
 		{
-			if (dup2(STDIN_FILENO, in[i]) == -1) exit(EXIT_FAILURE);
-			if (dup2(STDOUT_FILENO, out[i]) == -1) exit(EXIT_FAILURE);
+			if (dup2(in[i], STDIN_FILENO) == -1) exit(EXIT_FAILURE);
+			if (dup2(out[i], STDOUT_FILENO) == -1) exit(EXIT_FAILURE);
+			struct sigaction act;
+    		memset(&act, 0, sizeof(act));
+    		act.sa_handler = hdl;
+    		sigset_t set; 
+    		sigemptyset(&set);        
+    		sigaddset(&set, SIGPIPE);
+    		act.sa_mask = set;
+			sigaction(SIGPIPE, &act, 0);
 			exec(programs[i]);
 		}
 		else
