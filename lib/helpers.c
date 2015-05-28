@@ -183,11 +183,9 @@ int runpiped(execargs_t** programs, size_t n)
     sigemptyset(&set);        
     sigaddset(&set, SIGINT);
 	sigaddset(&set, SIGPIPE);
-	sigaddset(&set, SIGCHLD);
     act.sa_mask = set;
     sigaction(SIGINT, &act, 0);
 	sigaction(SIGPIPE, &act, 0);
-	sigaction(SIGCHLD, &act, 0);
 	pidn = n;
 	pids = malloc(n * sizeof(pid_t));
 	if (pids == NULL) return -1;
@@ -210,7 +208,7 @@ int runpiped(execargs_t** programs, size_t n)
 		out[i] = pipefds[1];
 		in[i + 1] = pipefds[0];
 	}	
-	for (i = n - 1; i >= 0; i++)
+	for (i = n - 1; i >= 0; i--)
 	{
 		int pid = fork();		
 		if (pid == -1)
