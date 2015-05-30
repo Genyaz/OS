@@ -65,7 +65,7 @@ void run(char * ss, int len)
 	{
 		if (runpiped(programs, size) == -1)
 		{
-			write_(STDOUT_FILENO, "\nSomething went wrong, try again.\n", 34);
+			if (write_(STDOUT_FILENO, "\nSomething went wrong, try again.\n", 34) == -1) exit(EXIT_FAILURE); 
 		}
 		free(s);
 		free(split);

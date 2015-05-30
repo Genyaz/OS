@@ -159,8 +159,7 @@ void wait_all()
 	int status;
 	while (1)
 	{
-		wait(&status);
-		if (errno == ECHILD) break;
+		if (wait(&status) == -1 && errno == ECHILD) break;
 	}
 }
 
@@ -203,6 +202,12 @@ int runpiped(execargs_t** programs, size_t n)
 	{
 		if (pipe(pipefds) == -1)
 		{
+			int j;
+			for (j = 0; j < i; j++)
+			{
+				close(in[j + 1]);
+				close(out[j]);
+			}
 			return -1;
 		}
 		out[i] = pipefds[1];
@@ -215,6 +220,11 @@ int runpiped(execargs_t** programs, size_t n)
 		{
 			kill_chlds();
 			wait_all();
+			for (i = 0; i < pidn; i++)
+			{
+				close(in[i]);
+				close(out[i]);
+			}
 			return -1;	
 		}
 		if (pid == 0)
@@ -235,9 +245,14 @@ int runpiped(execargs_t** programs, size_t n)
 			pids[i] = pid;
 		}
 	}
-	int status;
-	wait(&status);
-	kill_chlds();
+	//int status;
+	//wait(&status);
+	//kill_chlds();
 	wait_all();
+	for (i = 0; i < pidn - 1; i++)
+	{
+		close(in[i + 1]);
+	    close(out[i]);
+	}			
 	return 0;  
 }
