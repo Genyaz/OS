@@ -5,6 +5,7 @@ all:
 	cd ./filter && $(MAKE)
 	cd ./bufcat && $(MAKE)
 	cd ./simplesh && $(MAKE)
+	cd ./filesender && $(MAKE)
 
 clean:
 	cd ./lib && $(MAKE) clean
@@ -13,3 +14,4 @@ clean:
 	cd ./filter && $(MAKE) clean
 	cd ./bufcat && $(MAKE) clean
 	cd ./simplesh && $(MAKE) clean
+	cd ./filesender && $(MAKE) clean
