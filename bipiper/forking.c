@@ -15,14 +15,14 @@
 
 int main(int argc, char** argv)
 {
-	if (argc < 3) exit(EXIT_FAILURE);
+    if (argc < 3) exit(EXIT_FAILURE);
     struct addrinfo hints;
     struct addrinfo *result, *rp;
     int sfd1, sfd2;
     struct sockaddr_storage peer_addr;
     socklen_t peer_addr_len;
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;    
+    hints.ai_family = AF_INET; 
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_protocol = IPPROTO_TCP;
@@ -40,17 +40,17 @@ int main(int argc, char** argv)
         if (sfd1 == -1)
             continue;
         if (bind(sfd1, rp->ai_addr, rp->ai_addrlen) == 0)
-            break;                
+            break;
         close(sfd1);
     }
 
-    if (rp == NULL) {              
+    if (rp == NULL) {
         exit(EXIT_FAILURE);
     }
     freeaddrinfo(result);
 
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;    
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_protocol = IPPROTO_TCP;
@@ -68,15 +68,15 @@ int main(int argc, char** argv)
         if (sfd2 == -1)
             continue;
         if (bind(sfd2, rp->ai_addr, rp->ai_addrlen) == 0)
-            break;                
+            break;
         close(sfd2);
     }
 
     if (rp == NULL) {
-        close(sfd1);              
+        close(sfd1);
         exit(EXIT_FAILURE);
     }
-    freeaddrinfo(result);     
+    freeaddrinfo(result);
 
     if (listen(sfd1, BACK_LOG) == -1 || listen(sfd2, BACK_LOG) == -1)
     {
@@ -84,20 +84,20 @@ int main(int argc, char** argv)
         close(sfd2);
         exit(EXIT_FAILURE);
     }
-	while (1)
-	{
-		struct sockaddr_in client;
-		socklen_t sz = sizeof(client);
-  		int listener1 = accept(sfd1, (struct sockaddr*)&client, &sz);
+    while (1)
+    {
+        struct sockaddr_in client;
+        socklen_t sz = sizeof(client);
+        int listener1 = accept(sfd1, (struct sockaddr*)&client, &sz);
         if (listener1 != -1)
-		{
+        {
             while (1)
             {
                 int listener2 = accept(sfd2, (struct sockaddr*)&client, &sz);
                 if (listener2 != -1)
                 {
                     int pid = fork();
-			        if (pid == -1)
+                    if (pid == -1)
                     {
                         close(sfd1);
                         close(sfd2);
@@ -105,17 +105,18 @@ int main(int argc, char** argv)
                         close(listener2);
                         exit(EXIT_FAILURE);
                     }
-			        if (pid == 0)
+                    if (pid == 0)
                     {
                         close(sfd1);
                         close(sfd2);
-				        buf_t* buffer = buf_new(BUF_SIZE);
+                        buf_t* buffer = buf_new(BUF_SIZE);
                         if (buffer == NULL)
                         {
                             close(listener1);
                             close(listener2);
                             exit(EXIT_FAILURE);
                         }
+                        int closed = 0;
                         while (1)
                         {
                             if (buf_fill(listener1, buffer, 1) == -1)
@@ -123,12 +124,12 @@ int main(int argc, char** argv)
                                 close(listener1);
                                 close(listener2);
                                 buf_free(buffer);
-                                exit(EXIT_FAILURE);                       
+                                exit(EXIT_FAILURE);
                             }
-                            if (buffer->size == 0) 
+                            if (buffer->size == 0)
                             {
-                                close(listener1);
-                                close(listener2);
+                                shutdown(listener1, SHUT_RD);
+                                shutdown(listener2, SHUT_WR);
                                 buf_free(buffer);
                                 exit(EXIT_SUCCESS);
                             }
@@ -138,13 +139,13 @@ int main(int argc, char** argv)
                                 close(listener2);
                                 buf_free(buffer);
                                 exit(EXIT_FAILURE);
-                            }                            
+                            }
                         }
                     }
                     else
                     {
                         pid = fork();
-			            if (pid == -1)
+                        if (pid == -1)
                         {
                             close(sfd1);
                             close(sfd2);
@@ -152,11 +153,11 @@ int main(int argc, char** argv)
                             close(listener2);
                             exit(EXIT_FAILURE);
                         }
-			            if (pid == 0)
+                        if (pid == 0)
                         {
                             close(sfd1);
                             close(sfd2);
-				            buf_t* buffer = buf_new(BUF_SIZE);
+                            buf_t* buffer = buf_new(BUF_SIZE);
                             if (buffer == NULL)
                             {
                                 close(listener1);
@@ -170,12 +171,12 @@ int main(int argc, char** argv)
                                     close(listener1);
                                     close(listener2);
                                     buf_free(buffer);
-                                    exit(EXIT_FAILURE);                       
+                                    exit(EXIT_FAILURE);
                                 }
-                                if (buffer->size == 0) 
+                                if (buffer->size == 0)
                                 {
-                                    close(listener1);
-                                    close(listener2);
+                                    shutdown(listener2, SHUT_RD);
+                                    shutdown(listener1, SHUT_WR);
                                     buf_free(buffer);
                                     exit(EXIT_SUCCESS);
                                 }
@@ -186,7 +187,7 @@ int main(int argc, char** argv)
                                     buf_free(buffer);
                                     exit(EXIT_FAILURE);
                                 }
-                            }                            
+                            }
                         }
                         else
                         {
@@ -195,8 +196,8 @@ int main(int argc, char** argv)
                             break;
                         }
                     }
-                }               
+                }
             }
         }
-	}  	    
+    }
 }

@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     struct sockaddr_storage peer_addr;
     socklen_t peer_addr_len;
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;    
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
     hints.ai_protocol = IPPROTO_TCP;
@@ -40,14 +40,14 @@ int main(int argc, char** argv)
         if (sfd == -1)
             continue;
         if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
-            break;                
+            break;
         close(sfd);
     }
 
-    if (rp == NULL) {              
+    if (rp == NULL) {
         exit(EXIT_FAILURE);
     }
-    freeaddrinfo(result);  
+    freeaddrinfo(result);
 
     if (listen(sfd, BACK_LOG) == -1)
     {
@@ -56,22 +56,22 @@ int main(int argc, char** argv)
     }
 	while (1)
 	{
-		struct sockaddr_in client;
-		socklen_t sz = sizeof(client);
-  		int listener = accept(sfd, (struct sockaddr*)&client, &sz);
-		if (listener != -1)
-		{
-			int pid = fork();
-			if (pid == -1)
+        struct sockaddr_in client;
+        socklen_t sz = sizeof(client);
+        int listener = accept(sfd, (struct sockaddr*)&client, &sz);
+        if (listener != -1)
+        {
+            int pid = fork();
+            if (pid == -1)
             {
                 close(sfd);
                 close(listener);
                 exit(EXIT_FAILURE);
             }
-			if (pid == 0)
+            if (pid == 0)
             {
                 close(sfd);
-				buf_t* buffer = buf_new(BUF_SIZE);
+                buf_t* buffer = buf_new(BUF_SIZE);
                 if (buffer == NULL)
                 {
                     close(listener);
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
                     buf_free(buffer);
                     close(listener);
                     exit(EXIT_FAILURE);
-                }                
+                }
                 while (1)
                 {
                     if (buf_fill(file, buffer, BUF_SIZE) == -1)
@@ -91,7 +91,7 @@ int main(int argc, char** argv)
                         close(listener);
                         close(file);
                         buf_free(buffer);
-                        exit(EXIT_FAILURE);                       
+                        exit(EXIT_FAILURE);
                     }
                     int required = BUF_SIZE;
                     if (buffer->size < BUF_SIZE)
@@ -105,19 +105,19 @@ int main(int argc, char** argv)
                         buf_free(buffer);
                         exit(EXIT_FAILURE);
                     }
-                    if (required < BUF_SIZE) 
+                    if (required < BUF_SIZE)
                     {
                         close(listener);
                         close(file);
                         buf_free(buffer);
                         exit(EXIT_SUCCESS);
                     }
-                }                
+                }
             }
             else
             {
                 close(listener);
             }
-		}
-	}  	    
+        }
+    }
 }

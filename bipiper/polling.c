@@ -68,13 +68,15 @@ int handle(mypipe* p, struct pollfd* fd1, struct pollfd* fd2)
     {
         return -1;
     }
-    if (!p->closed2to1 && ((fd1->revents & POLLOUT) != 0) && p->buf2to1->size > 0)
+    if (((fd1->revents & POLLOUT) != 0) && p->buf2to1->size > 0)
     {
         if (buf_flush(fd1->fd, p->buf2to1, 1) == -1) return -1;
+        if (p->closed2to1 && p->buf2to1->size == 0) shutdown(fd1->fd, SHUT_WR);
     }
-    if (!p->closed1to2 && ((fd2->revents & POLLOUT) != 0) && p->buf1to2->size > 0)
+    if (((fd2->revents & POLLOUT) != 0) && p->buf1to2->size > 0)
     {
         if (buf_flush(fd2->fd, p->buf1to2, 1) == -1) return -1;
+        if (p->closed1to2 && p->buf1to2->size == 0) shutdown(fd2->fd, SHUT_WR);
     }
     if (!p->closed1to2 && ((fd1->revents & POLLIN) != 0) && p->buf1to2->size < p->buf1to2->capacity)
     {
@@ -84,7 +86,6 @@ int handle(mypipe* p, struct pollfd* fd1, struct pollfd* fd2)
         {
             p->closed1to2 = 1;
             shutdown(fd1->fd, SHUT_RD);
-            //shutdown(fd2->fd, SHUT_WR);
         }
     }
     if (!p->closed2to1 && ((fd2->revents & POLLIN) != 0) && p->buf2to1->size < p->buf2to1->capacity)
@@ -95,7 +96,6 @@ int handle(mypipe* p, struct pollfd* fd1, struct pollfd* fd2)
         {
             p->closed2to1 = 1;
             shutdown(fd2->fd, SHUT_RD);
-            //shutdown(fd1->fd, SHUT_WR);
         }
     }
     if (p->closed1to2 && p->closed2to1) return -1;
